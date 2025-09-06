@@ -24,8 +24,13 @@ const DashboardPage = () => {
 
   // This hook runs once when the page loads to set up our real-time connection
   useEffect(() => {
+    
     // Connect to our backend server
     const socket = io('http://localhost:5000');
+    // --- THIS IS THE FIX ---
+    // We are temporarily attaching the socket to the global window object
+    // so we can access it from the browser's developer console for testing.
+    window.socket = socket;
 
     socket.on('connect', () => {
       console.log('✅ Connected to real-time server!', socket.id);
@@ -41,6 +46,7 @@ const DashboardPage = () => {
     // It's important for preventing memory leaks
     return () => {
       socket.disconnect();
+      delete window.socket; // Clean up our temporary backdoor
     };
   }, []); // The empty array [] tells React to only run this effect once
 
