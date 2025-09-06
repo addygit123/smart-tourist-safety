@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import React, { useState,useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline ,Circle} from 'react-leaflet';
 import L from 'leaflet';
 import PolylineDecorator from './PolylineDecorator'; // <-- Import our new component
 
@@ -62,6 +62,22 @@ const LiveMap = ({ tourists }) => {
   const mapCenter = [23.1815, 79.9864];
   const [activeTrail, setActiveTrail] = useState(null);
 
+  // --- NEW: State to hold the geo-fence data ---
+  const [fences, setFences] = useState([]);
+
+  useEffect(() => {
+    const fetchFences = async () => {
+        try {
+            const response = await fetch('http://localhost:5000/api/geofences');
+            const data = await response.json();
+            setFences(data);
+        } catch (error) {
+            console.error("Failed to fetch geo-fences:", error);
+        }
+    };
+    fetchFences();
+  }, []); // The empty array ensures this runs only once.
+
   const handleShowTrail = (trailData) => {
     // If the same trail is clicked again, hide it.
     if (activeTrail === trailData) {
@@ -69,6 +85,14 @@ const LiveMap = ({ tourists }) => {
     } else {
       setActiveTrail(trailData);
     }
+  };
+
+   // Define visual options for the high-risk zones
+  const dangerZoneOptions = {
+      fillColor: '#E53E3E', // Red
+      color: '#E53E3E',
+      fillOpacity: 0.2,
+      weight: 1,
   };
 
   return (
@@ -90,6 +114,17 @@ const LiveMap = ({ tourists }) => {
             <PolylineDecorator positions={activeTrail} />
           </>
         )}
+        {/* --- NEW: Render the geo-fences on the map --- */}
+        {fences.map(fence => (
+            <Circle 
+                key={fence.id}
+                center={[fence.center.lat, fence.center.lng]}
+                radius={fence.radius}
+                pathOptions={dangerZoneOptions}
+            >
+                <Popup><b>{fence.name}</b><br/>High-Risk Zone</Popup>
+            </Circle>
+        ))}
       </MapContainer>
     </>
   );
