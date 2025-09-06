@@ -16,6 +16,49 @@ const createIcon = (color, isAlert = false) => {
 };
 const icons = { Safe: createIcon('#3182CE'), Anomaly: createIcon('#DD6B20'), Alert: createIcon('#E53E3E', true) };
 
+// --- NEW: A dedicated component for showing device status icons ---
+const DeviceStatusIcons = ({ status }) => {
+    const getBatteryColor = (level) => {
+        if (level < 20) return '#E53E3E'; // Red
+        if (level < 50) return '#DD6B20'; // Orange
+        return '#38A169'; // Green
+    };
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+            {/* Battery Icon */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* The gray battery outline */}
+                    <path d="M17 5H7C5.89543 5 5 5.89543 5 7V17C5 18.1046 5.89543 19 7 19H17C18.1046 19 19 18.1046 19 17V7C19 5.89543 18.1046 5 17 5Z" stroke="#A0AEC0" strokeWidth="2"/>
+                    
+                    {/* The colored charge level */}
+                    <rect x="7" y="7" width="10" height="10" rx="1" 
+                        fill={getBatteryColor(status.battery)} 
+                        // --- THIS IS THE KEY PART ---
+                        // This style dynamically scales the rectangle's width
+                        // based on the battery percentage.
+                        style={{ 
+                            transform: `scaleX(${status.battery / 100})`, 
+                            transformOrigin: 'left' 
+                        }} 
+                    />
+
+                    {/* The little nub on the end of the battery */}
+                    <path d="M21 9V15" stroke="#A0AEC0" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <span style={{ fontSize: '12px', color: '#0c0c0dff' }}>{Math.round(status.battery)}%</span>
+            </div>
+            {/* Network Icon */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '16px' }}>
+                {[1, 2, 3, 4].map(bar => (
+                    <div key={bar} style={{ width: '4px', height: `${bar * 4}px`, backgroundColor: status.network >= bar ? '#38A169' : '#4A5568', borderRadius: '1px' }}></div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 
 // This is our smarter marker component.
 const TouristMarker = ({ tourist, onShowTrail }) => {
@@ -38,17 +81,17 @@ const TouristMarker = ({ tourist, onShowTrail }) => {
   };
 
   return (
-    <Marker position={[tourist.location.lat, tourist.location.lng]} icon={icons[tourist.status] || icons['Safe']} eventHandlers={{ click: handleMarkerClick }}>
+    <Marker position={[tourist.location.lat, tourist.location.lng]} icon={icons[tourist.status] || icons['Safe']} eventHandlers={{ /* ... */ }}>
       <Popup>
         <b>{tourist.name}</b><br />
-        Status: {tourist.status}<br /><br />
+        Status: {tourist.status}<br />
+        <hr style={{ borderTop: '1px solid #4A5568', margin: '8px 0' }} />
         <b>Location:</b><br />
         {address}
-        <br /><br />
-        <button 
-          onClick={() => onShowTrail(tourist.locationHistory)}
-          className="bg-blue-600 text-white text-xs font-bold py-1 px-3 rounded hover:bg-blue-700 w-full"
-        >
+        {/* --- NEW: Display the device status icons --- */}
+        <DeviceStatusIcons status={tourist.deviceStatus} />
+        <br />
+        <button onClick={() => onShowTrail(tourist.locationHistory)} className="bg-blue-600 text-white text-xs font-bold py-1 px-3 rounded hover:bg-blue-700 w-full">
           Show Recent Trail
         </button>
       </Popup>
