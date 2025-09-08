@@ -22,7 +22,6 @@ export const registerTourist = async (req, res) => {
         console.log("1. Received new tourist registration request.");
 
         // --- MOCK of the Mockchain API ---
-        // Instead of calling Shivam's API, we create a fake response right here.
         console.log("2. MOCKING the Mockchain API call...");
         const mockchainResponse = {
             data: {
@@ -35,27 +34,39 @@ export const registerTourist = async (req, res) => {
         const { touristId, verificationHash } = mockchainResponse.data;
         console.log(`3. Received MOCKED ID from Mockchain: ${touristId}`);
         
-        // Create the full tourist object with all the data
         const newTourist = new Tourist({
-            name,
-            passportId,
-            nationality,
-            touristPhone,
+            name, passportId, nationality, touristPhone,
             emergencyContact: {
                 name: emergencyContactName,
                 phone: emergencyContactPhone,
             },
-            touristId, // The ID from our mock
-            verificationHash, // The hash from our mock
+            touristId,
+            verificationHash,
+            location: {
+                lat: 23.1815 + (Math.random() - 0.5) * 0.01,
+                lng: 79.9864 + (Math.random() - 0.5) * 0.01
+            },// Guaranteed to have a device status
+            deviceStatus: {
+                battery: 100, // Start with a full battery
+                network: 4    // Start with a full network signal
+            }
         });
 
-        // Save the complete record to your real MongoDB database
         await newTourist.save();
         console.log(`6. Saved new tourist to database.`);
 
         // 7. After saving, send the welcome SMS to the tourist.
         sendRegistrationSMS(newTourist);
         
+        // --- THIS IS THE NEW PART ---
+        // 8. Get the complete, updated list of ALL tourists from the database.
+        const allTourists = await Tourist.find({});
+        
+        // 9. Use the 'io' object (from our middleware in index.js) to broadcast the full list.
+        req.io.emit('touristUpdate', allTourists);
+        console.log('📡 Broadcasted updated tourist list to all clients.');
+        // --- END OF NEW PART ---
+
         res.status(201).json({ message: 'Tourist registered successfully (using mockchain)', tourist: newTourist });
 
     } catch (error) {
