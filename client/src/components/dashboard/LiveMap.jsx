@@ -17,7 +17,15 @@ const createIcon = (color, isAlert = false) => {
 const icons = { Safe: createIcon('#3182CE'), Anomaly: createIcon('#DD6B20'), Alert: createIcon('#E53E3E', true) };
 
 // --- NEW: A dedicated component for showing device status icons ---
+
 const DeviceStatusIcons = ({ status }) => {
+    // --- THE FIX: The Safety Net ---
+    // If for any reason the status object doesn't exist,
+    // this component will now render nothing instead of crashing the app.
+    if (!status) {
+        return null; 
+    }
+
     const getBatteryColor = (level) => {
         if (level < 20) return '#E53E3E'; // Red
         if (level < 50) return '#DD6B20'; // Orange
@@ -29,25 +37,14 @@ const DeviceStatusIcons = ({ status }) => {
             {/* Battery Icon */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    {/* The gray battery outline */}
                     <path d="M17 5H7C5.89543 5 5 5.89543 5 7V17C5 18.1046 5.89543 19 7 19H17C18.1046 19 19 18.1046 19 17V7C19 5.89543 18.1046 5 17 5Z" stroke="#A0AEC0" strokeWidth="2"/>
-                    
-                    {/* The colored charge level */}
                     <rect x="7" y="7" width="10" height="10" rx="1" 
                         fill={getBatteryColor(status.battery)} 
-                        // --- THIS IS THE KEY PART ---
-                        // This style dynamically scales the rectangle's width
-                        // based on the battery percentage.
-                        style={{ 
-                            transform: `scaleX(${status.battery / 100})`, 
-                            transformOrigin: 'left' 
-                        }} 
+                        style={{ transform: `scaleX(${status.battery / 100})`, transformOrigin: 'left' }} 
                     />
-
-                    {/* The little nub on the end of the battery */}
                     <path d="M21 9V15" stroke="#A0AEC0" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                <span style={{ fontSize: '12px', color: '#0c0c0dff' }}>{Math.round(status.battery)}%</span>
+                <span style={{ fontSize: '12px', color: '#E2E8F0' }}>{Math.round(status.battery)}%</span>
             </div>
             {/* Network Icon */}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '16px' }}>
@@ -81,7 +78,7 @@ const TouristMarker = ({ tourist, onShowTrail }) => {
   };
 
   return (
-    <Marker position={[tourist.location.lat, tourist.location.lng]} icon={icons[tourist.status] || icons['Safe']} eventHandlers={{ /* ... */ }}>
+    <Marker position={[tourist.location.lat, tourist.location.lng]} icon={icons[tourist.status] || icons['Safe']} eventHandlers={{click: handleMarkerClick }}>
       <Popup>
         <b>{tourist.name}</b><br />
         Status: {tourist.status}<br />
@@ -145,7 +142,7 @@ const LiveMap = ({ tourists }) => {
         <TileLayer url="https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}" subdomains={['mt0', 'mt1', 'mt2', 'mt3']} attribution='&copy; Google Maps' />
         
         {tourists.map(tourist => (
-          <TouristMarker key={tourist.id} tourist={tourist} onShowTrail={handleShowTrail} />
+          <TouristMarker key={tourist._id} tourist={tourist} onShowTrail={handleShowTrail} />
         ))}
 
         {/* --- UPGRADED TRAIL WITH ARROWS --- */}
