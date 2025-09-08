@@ -21,7 +21,12 @@ const touristSchema = new mongoose.Schema({
         name: String, 
         phone: String 
     },
-    status: { type: String, default: 'Safe' },
+    status: { 
+        type: String, 
+        enum: ['Safe', 'Anomaly', 'Alert', 'Investigating', 'Resolved'],
+        default: 'Safe',
+        required: true
+    },
     
     location: { 
         type: locationSchema, 
