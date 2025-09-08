@@ -5,6 +5,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import authRoutes from "./routes/authRoutes.js"
 import connectDB from "./config/db.js";
+import touristRoutes from './routes/touristRoutes.js';
 connectDB();
 
 // --- NEW: Define our Geo-fenced "High-Risk" Zones ---
@@ -31,7 +32,9 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
-app.use("/api/auth",authRoutes)
+app.use("/api/auth",authRoutes);
+app.use("/api/tourists",touristRoutes);
+
 
 app.get('/api/tourists', (req, res) => {
     res.status(200).json(mockTourists);
