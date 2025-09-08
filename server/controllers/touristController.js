@@ -1,7 +1,7 @@
 import Tourist from '../models/Tourist.js';
 // We are temporarily removing axios because we are mocking the mockchain call.
 // import axios from 'axios';
-
+import { sendRegistrationSMS } from '../services/notificationService.js';
 // --- UPGRADED: This function now fetches from the REAL database ---
 export const getAllTourists = async (req, res) => {
   try {
@@ -53,6 +53,9 @@ export const registerTourist = async (req, res) => {
         await newTourist.save();
         console.log(`6. Saved new tourist to database.`);
 
+        // 7. After saving, send the welcome SMS to the tourist.
+        sendRegistrationSMS(newTourist);
+        
         res.status(201).json({ message: 'Tourist registered successfully (using mockchain)', tourist: newTourist });
 
     } catch (error) {
