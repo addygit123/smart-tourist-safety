@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 import LiveMap from '../components/dashboard/LiveMap';
 // --- CORRECTED IMPORTS BASED ON YOUR FILENAMES ---
 import StatsCard from '../components/dashboard/StatisticsCard'; 
-import AlertsFeed from '../components/dashboard/AlertCard';
+import AlertsFeed from '../components/dashboard/AlertFeeds';
 import RegisterTouristModal from '../components/dashboard/RegisterTouristModal';
 
 const DashboardPage = () => {
@@ -20,10 +20,30 @@ const DashboardPage = () => {
     };
     fetchInitialTourists();
 
-    const socket = io('http://localhost:5000');
-    socket.on('touristUpdate', (updatedTourists) => { setTourists(updatedTourists); });
-    return () => socket.disconnect();
+     const socket = io('http://localhost:5000');
+
+
+    
+    // --- THIS IS THE FIX ---
+    // We are temporarily attaching the socket to the global window object
+    // so we can access it from the browser's developer console for testing.
+    window.socket = socket;
+
+    socket.on('connect', () => {
+      console.log('✅ Connected to real-time server!', socket.id);
+    });
+
+    socket.on('touristUpdate', (updatedTourists) => {
+      setTourists(updatedTourists);
+    });
+
+    // Cleanup function
+    return () => {
+      socket.disconnect();
+      delete window.socket; // Clean up our temporary backdoor when the page closes
+    };
   }, []);
+
 
   const handleRegisterTourist = async (formData) => {
     try {

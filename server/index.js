@@ -17,14 +17,6 @@ const geoFences = [
   { id: 'zone-2', name: 'Unstable Cliffside', center: { lat: 23.1700, lng: 79.9750 }, radius: 250 }
 ];
 
-// --- NEW: Added deviceStatus to each tourist ---
-const mockTourists = [
-  { id: 1, name: 'Rohan Sharma', status: 'Safe', location: { lat: 23.1815, lng: 79.9864 }, locationHistory: [], deviceStatus: { battery: 85, network: 4 },emergencyContact: { name: 'Rohan Patel', phone: '+919876543211' } },
-  { id: 2, name: 'Priya Patel', status: 'Safe', location: { lat: 23.1820, lng: 79.9850 }, locationHistory: [], deviceStatus: { battery: 25, network: 3 } },
-  { id: 2, name: 'Nandu Patel', status: 'Safe', location: { lat: 23.1825, lng: 79.9855 }, locationHistory: [], deviceStatus: { battery: 25, network: 3 },emergencyContact: { name: 'Rohan Patel', phone: '+919876543211' } }, // Priya's battery is lower
-  { id: 3, name: 'Amit Singh', status: 'Safe', location: { lat: 23.1750, lng: 80.0010 }, locationHistory: [], deviceStatus: { battery: 95, network: 4 } },
-  { id: 4, name: 'Sunita Devi', status: 'Safe', location: { lat: 23.1921, lng: 79.9654 }, locationHistory: [], deviceStatus: { battery: 60, network: 2 } },
-];
 
 const app = express();
 const server = http.createServer(app);
@@ -33,6 +25,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 5000;
+
 app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
@@ -84,6 +77,26 @@ io.on('connection', async (socket) => {
         console.error("Error handling panic alert:", error);
     }
   });
+  // --- THIS IS THE NEW FEATURE: ALERT TRIAGE ---
+  // It listens for a message from the dashboard to update a status.
+  socket.on('updateStatus', async (data) => {
+    // The data object will look like: { touristId: '...', newStatus: 'Resolved' }
+    console.log(`STATUS UPDATE for tourist ${data.touristId} to ${data.newStatus}`);
+    try {
+        await Tourist.findOneAndUpdate(
+            { touristId: data.touristId }, 
+            { status: data.newStatus }
+        );
+
+        // After updating, broadcast the fresh list to EVERYONE
+        const allTourists = await Tourist.find({});
+        io.emit('touristUpdate', allTourists);
+
+    } catch (error) {
+        console.error("Error updating status:", error);
+    }
+  });
+
   
   socket.on('disconnect', () => console.log('❌ User disconnected:', socket.id));
 });

@@ -3,9 +3,11 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import { SocketProvider } from './context/SocketContext';
 
 function App() {
   return (
+    <SocketProvider>
     <Router>
       <Routes>
         {/* <Route path="/" element={<LandingPage />} /> */}
@@ -19,6 +21,7 @@ function App() {
         />
       </Routes>
     </Router>
+    </SocketProvider>
   );
 }
 
