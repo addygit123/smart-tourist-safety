@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import authRoutes from "./routes/authRoutes.js"
 import connectDB from "./config/db.js";
 import touristRoutes from './routes/touristRoutes.js';
+import { sendAlertSMS } from './services/notificationService.js';
 connectDB();
 
 // --- NEW: Define our Geo-fenced "High-Risk" Zones ---
@@ -17,8 +18,9 @@ const geoFences = [
 
 // --- NEW: Added deviceStatus to each tourist ---
 const mockTourists = [
-  { id: 1, name: 'Rohan Sharma', status: 'Safe', location: { lat: 23.1815, lng: 79.9864 }, locationHistory: [], deviceStatus: { battery: 85, network: 4 } },
-  { id: 2, name: 'Priya Patel', status: 'Safe', location: { lat: 23.1820, lng: 79.9850 }, locationHistory: [], deviceStatus: { battery: 25, network: 3 } }, // Priya's battery is lower
+  { id: 1, name: 'Rohan Sharma', status: 'Safe', location: { lat: 23.1815, lng: 79.9864 }, locationHistory: [], deviceStatus: { battery: 85, network: 4 },emergencyContact: { name: 'Rohan Patel', phone: '+919876543211' } },
+  { id: 2, name: 'Priya Patel', status: 'Safe', location: { lat: 23.1820, lng: 79.9850 }, locationHistory: [], deviceStatus: { battery: 25, network: 3 } },
+  { id: 2, name: 'Nandu Patel', status: 'Safe', location: { lat: 23.1825, lng: 79.9855 }, locationHistory: [], deviceStatus: { battery: 25, network: 3 },emergencyContact: { name: 'Rohan Patel', phone: '+919876543211' } }, // Priya's battery is lower
   { id: 3, name: 'Amit Singh', status: 'Safe', location: { lat: 23.1750, lng: 80.0010 }, locationHistory: [], deviceStatus: { battery: 95, network: 4 } },
   { id: 4, name: 'Sunita Devi', status: 'Safe', location: { lat: 23.1921, lng: 79.9654 }, locationHistory: [], deviceStatus: { battery: 60, network: 2 } },
 ];
@@ -83,41 +85,45 @@ const haversineDistance = (coords1, coords2) => {
 // --- UPGRADED SIMULATOR ---
 setInterval(() => {
     mockTourists.forEach(tourist => {
+        // --- THIS IS THE KEY LOGIC ---
+        const oldStatus = tourist.status; // 1. Remember the status BEFORE the check.
+
         // ... (location history and movement logic remains the same)
         tourist.locationHistory.push([tourist.location.lat, tourist.location.lng]);
         if (tourist.locationHistory.length > 20) tourist.locationHistory.shift();
-        // --- THIS IS THE SECOND CHANGE ---
-        // We give Priya Patel a specific, non-random path into the danger zone.
-        if (tourist.id === 2) { // If the tourist is Priya Patel
-            // Move her steadily northeast, towards the center of zone-1
+        if (tourist.id === 2) {
             tourist.location.lat += 0.0004;
             tourist.location.lng += 0.0004;
         } else {
-            // All other tourists still move randomly.
             tourist.location.lat += (Math.random() - 0.5) * 0.001;
             tourist.location.lng += (Math.random() - 0.5) * 0.001;
         }
-        // --- NEW: Check if the tourist is inside any geo-fence ---
+
         let isInDangerZone = false;
         for (const fence of geoFences) {
             const distance = haversineDistance(tourist.location, fence.center);
             if (distance < fence.radius) {
                 isInDangerZone = true;
-                break; // No need to check other fences
+                break;
             }
         }
 
-        // Update status based on the check. We won't override a manual SOS alert.
-        if (tourist.status !== 'Alert') { // 'Alert' is reserved for Panic Button
+        // 2. Update the status based on the check.
+        if (tourist.status !== 'Alert') {
             tourist.status = isInDangerZone ? 'Anomaly' : 'Safe';
         }
-         // --- NEW: Simulate device status changes ---
-        // Battery drains slowly, Priya's drains faster
+        
+        // 3. Compare the old status with the new one.
+        // If it just changed from 'Safe' to 'Anomaly', send the SMS.
+        if (tourist.status === 'Anomaly' && oldStatus === 'Safe') {
+            sendAlertSMS(tourist);
+        }
+        // --- END OF KEY LOGIC ---
+
+        // ... (device status logic remains the same)
         const drain = tourist.id === 2 ? 2 : 0.5;
         tourist.deviceStatus.battery = Math.max(0, tourist.deviceStatus.battery - drain);
-
-        // Network signal fluctuates
-        tourist.deviceStatus.network = Math.floor(Math.random() * 4) + 1; // Random number between 1 and 4
+        tourist.deviceStatus.network = Math.floor(Math.random() * 4) + 1;
     });
 
     io.emit('touristUpdate', mockTourists);
