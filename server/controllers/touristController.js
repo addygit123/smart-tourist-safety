@@ -77,3 +77,62 @@ export const registerTourist = async (req, res) => {
         res.status(500).json({ message: 'Failed to register tourist due to a server error.' });
     }
 };
+
+export const getATourist = async (req, res) => {
+    const {id}  = req.body
+    console.log('here :',id);
+    
+
+    try {
+        const data = await Tourist.find({touristId: id})
+        console.log(data);
+        
+        res.status(200).json({data: data})
+    }
+    catch(e){
+        console.log(e);
+        res.status(500).send({error: e})
+    }
+}
+
+export const updateLocation = async (req, res) => {
+    const {id, lat, long, blevel, network} = req.body
+
+    const updateddc = {
+        $set: {
+            location: {
+                lat: lat,
+                lng: long
+            },
+            deviceStatus: {
+                network: network,
+                battery: blevel
+            }
+        }
+    }
+    try {
+        await Tourist.updateOne({touristId: id}, updateddc)
+        res.status(200).json({message: 'ok'})
+    }
+    catch(e){
+        res.status(500).json({message: e})
+    }
+}
+
+export const makeUnsafe = async (req, res) => {
+    const {id} = req.body
+
+    try{
+        const updatedoc = {
+            $set: {
+                status: "Unsafe"
+            }
+        }
+        await Tourist.updateOne({touristId: id}, updatedoc)
+        res.status(200).json({message: 'ok'})
+    }
+    catch(e){
+        console.log(e);
+        res.status(500).json({message: e})
+    }
+}
