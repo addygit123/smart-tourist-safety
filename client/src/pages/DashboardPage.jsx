@@ -58,7 +58,11 @@ const DashboardPage = () => {
     }
   };
 
-  const activeAlerts = tourists.filter(t => t.status === 'Alert' || t.status === 'Anomaly');
+  const activeAlerts = tourists.filter(t => 
+    t.status === 'Alert' || 
+    t.status === 'Anomaly' || 
+    t.status === 'Investigating'
+  );
 
   return (
     <>

@@ -44,7 +44,7 @@ const DeviceStatusIcons = ({ status }) => {
                     />
                     <path d="M21 9V15" stroke="#A0AEC0" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                <span style={{ fontSize: '12px', color: '#E2E8F0' }}>{Math.round(status.battery)}%</span>
+                <span style={{ fontSize: '12px', color: '#000000ff' }}>{Math.round(status.battery)}%</span>
             </div>
             {/* Network Icon */}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '16px' }}>
@@ -88,7 +88,11 @@ const TouristMarker = ({ tourist, onShowTrail }) => {
         {/* --- NEW: Display the device status icons --- */}
         <DeviceStatusIcons status={tourist.deviceStatus} />
         <br />
-        <button onClick={() => onShowTrail(tourist.locationHistory)} className="bg-blue-600 text-white text-xs font-bold py-1 px-3 rounded hover:bg-blue-700 w-full">
+        <button onClick={() => onShowTrail(tourist.locationHistory)} 
+    // --- THIS IS THE FIX ---
+    // The button will be grayed out if there's no history to show.
+    disabled={!tourist.locationHistory || tourist.locationHistory.length < 2}
+    className="bg-blue-600 text-white text-xs font-bold py-1 px-3 rounded hover:bg-blue-700 w-full">
           Show Recent Trail
         </button>
       </Popup>

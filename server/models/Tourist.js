@@ -21,6 +21,15 @@ const touristSchema = new mongoose.Schema({
         name: String, 
         phone: String 
     },
+    ticketInfo: {
+        pnr: { type: String },
+        travelMode: { type: String }, // e.g., 'Flight', 'Train'
+        travelNumber: { type: String } // e.g., '6E-2048'
+    },
+    locationHistory: {
+        type: [[Number]], // An array of [lng, lat] pairs
+        default: []
+    },
     status: { 
         type: String, 
         enum: ['Safe', 'Anomaly', 'Alert', 'Investigating', 'Resolved'],

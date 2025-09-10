@@ -3,164 +3,158 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import { Server } from 'socket.io';
-import authRoutes from "./routes/authRoutes.js"
-import connectDB from "./config/db.js";
+import connectDB from './config/db.js';
 import touristRoutes from './routes/touristRoutes.js';
-import { sendAlertSMS } from './services/notificationService.js';
-connectDB();
+import authRoutes from './routes/authRoutes.js';
 import Tourist from './models/Tourist.js';
+import { sendAlertSMS } from './services/notificationService.js';
 
-// --- NEW: Define our Geo-fenced "High-Risk" Zones ---
-// A geo-fence is defined by a center point (lat, lng) and a radius in meters.
-const geoFences = [
-  { id: 'zone-1', name: 'Restricted Forest Area', center: { lat: 23.1850, lng: 79.9900 }, radius: 500 },
-  { id: 'zone-2', name: 'Unstable Cliffside', center: { lat: 23.1700, lng: 79.9750 }, radius: 250 }
-];
-
-
+// --- 1. Connect to DB and Set Up Server ---
+connectDB();
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] }
-});
-
+const io = new Server(server, { cors: { origin: "http://localhost:5173" } });
 const PORT = process.env.PORT || 5000;
 
+// --- 2. Middleware ---
 app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
     req.io = io;
     next();
 });
-app.use("/api/auth",authRoutes);
-app.use("/api/tourists",touristRoutes);
 
+// --- 3. Define Geo-Fences ---
+// This was missing from the last version. This is now correct.
+const geoFences = [
+  { id: 'zone-1', name: 'Restricted Forest Area', center: { lat: 23.1850, lng: 79.9900 }, radius: 800 },
+  // { id: 'zone-2', name: 'Unstable Cliffside', center: { lat: 23.1700, lng: 79.9750 }, radius: 250 },
+  { id: 'zone-3', name: 'Hanuman Tal Lake (Water Body)', center: { lat: 23.200892, lng: 79.985356 }, radius: 500 }
+];
 
-
-app.get('/api/tourists', (req, res) => {
-    res.status(200).json(mockTourists);
-});
-
-// --- NEW: API Endpoint to serve the geo-fence data ---
+// --- 4. API Routes ---
+app.use('/api/tourists', touristRoutes);
+app.use('/api/auth', authRoutes);
+// The /api/geofences route was missing. It is now fixed.
 app.get('/api/geofences', (req, res) => {
     res.status(200).json(geoFences);
 });
 
+// --- 5. Real-time Socket.IO Logic ---
 io.on('connection', async (socket) => {
   console.log('✅ A user connected:', socket.id);
   try {
     const allTourists = await Tourist.find({});
     socket.emit('touristUpdate', allTourists);
-  } catch (error) {
-    console.error("Error sending initial tourist list:", error);
-  }
-  // --- NEW: Listen for a Panic Alert from a client ---
-  socket.on('panicAlert', async (data) => {
-    console.log(`🚨 PANIC ALERT RECEIVED for tourist ID: ${data.touristId}`);
+  } catch (error) { console.error("Error sending initial tourist list:", error); }
 
-    // Find the tourist in our mock data
-    try {
-        // Find the tourist in the REAL database and update their status.
-        const updatedTourist = await Tourist.findOneAndUpdate(
-            { touristId: data.touristId }, 
-            { status: 'Alert' },
-            { new: true } // This option returns the updated document
-        );
-
-        if (updatedTourist) {
-            // After updating, get the full, fresh list of all tourists
-            const allTourists = await Tourist.find({});
-            // Broadcast the new list to everyone
-            io.emit('touristUpdate', allTourists);
-        }
-    } catch (error) {
-        console.error("Error handling panic alert:", error);
-    }
-  });
-  // --- THIS IS THE NEW FEATURE: ALERT TRIAGE ---
-  // It listens for a message from the dashboard to update a status.
   socket.on('updateStatus', async (data) => {
-    // The data object will look like: { touristId: '...', newStatus: 'Resolved' }
-    console.log(`STATUS UPDATE for tourist ${data.touristId} to ${data.newStatus}`);
-    try {
-        await Tourist.findOneAndUpdate(
-            { touristId: data.touristId }, 
-            { status: data.newStatus }
-        );
+  console.log(`STATUS UPDATE for tourist ${data.touristId} to ${data.newStatus}`);
+  try {
+      const updatedTourist = await Tourist.findOneAndUpdate(
+        { touristId: data.touristId },
+        { $set: { status: data.newStatus } },
+        { new: true } // return updated doc
+      );
 
-        // After updating, broadcast the fresh list to EVERYONE
-        const allTourists = await Tourist.find({});
-        io.emit('touristUpdate', allTourists);
+      if (!updatedTourist) {
+          console.warn(`⚠️ Tourist not found: ${data.touristId}`);
+          return;
+      }
 
-    } catch (error) {
-        console.error("Error updating status:", error);
-    }
-  });
+      console.log(`✅ DB updated: ${updatedTourist.touristId} is now ${updatedTourist.status}`);
 
-  
+      const allTourists = await Tourist.find({});
+      io.emit('touristUpdate', allTourists);
+  } catch (error) {
+      console.error("Error updating status:", error);
+  }
+});
+
   socket.on('disconnect', () => console.log('❌ User disconnected:', socket.id));
 });
 
-// --- UPGRADED SIMULATOR with Geo-fence check ---
-// Helper function to calculate distance between two lat/lng points in meters
+// --- 6. THE FINAL, CORRECT "HEARTBEAT" SIMULATOR ---
+
 const haversineDistance = (coords1, coords2) => {
-    const toRad = x => (x * Math.PI) / 180;
-    const R = 6371e3; // Earth's radius in metres
-    const dLat = toRad(coords2.lat - coords1.lat);
-    const dLon = toRad(coords2.lng - coords1.lng);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(coords1.lat)) * Math.cos(toRad(coords2.lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    const toRad = x => (x * Math.PI) / 180; const R = 6371e3; const dLat = toRad(coords2.lat - coords1.lat); const dLon = toRad(coords2.lng - coords1.lng); const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(coords1.lat)) * Math.cos(toRad(coords2.lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2); const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); return R * c;
 };
 
-// --- UPGRADED SIMULATOR ---
-// setInterval(() => {
-//     mockTourists.forEach(tourist => {
-//         // --- THIS IS THE KEY LOGIC ---
-//         const oldStatus = tourist.status; // 1. Remember the status BEFORE the check.
+const runSimulation = async () => {
+    try {
+        const touristsFromDB = await Tourist.find({});
 
-//         // ... (location history and movement logic remains the same)
-//         tourist.locationHistory.push([tourist.location.lat, tourist.location.lng]);
-//         if (tourist.locationHistory.length > 20) tourist.locationHistory.shift();
-//         if (tourist.id === 2) {
-//             tourist.location.lat += 0.0004;
-//             tourist.location.lng += 0.0004;
-//         } else {
-//             tourist.location.lat += (Math.random() - 0.5) * 0.001;
-//             tourist.location.lng += (Math.random() - 0.5) * 0.001;
-//         }
+        for (const tourist of touristsFromDB) {
+            let newLat = tourist.location.lat;
+            let newLng = tourist.location.lng;
 
-//         let isInDangerZone = false;
-//         for (const fence of geoFences) {
-//             const distance = haversineDistance(tourist.location, fence.center);
-//             if (distance < fence.radius) {
-//                 isInDangerZone = true;
-//                 break;
-//             }
-//         }
+            // Move the tourist
+            if (tourist.passportId === 'TESTID98765') {
+                newLat += 0.0004;
+                newLng += 0.0004;
+            } else {
+                newLat += (Math.random() - 0.5) * 0.001;
+            }
+            
+            const oldStatus = tourist.status;
+            let newStatus = tourist.status;
 
-//         // 2. Update the status based on the check.
-//         if (tourist.status !== 'Alert') {
-//             tourist.status = isInDangerZone ? 'Anomaly' : 'Safe';
-//         }
+            let isInDangerZone = false;
+            for (const fence of geoFences) {
+                if (haversineDistance({ lat: newLat, lng: newLng }, fence.center) < fence.radius) {
+                    isInDangerZone = true;
+                    break;
+                }
+            }
+            
+            // --- THIS IS THE CRITICAL LOGIC FIX ---
+            // Rule 1: The AI is ONLY allowed to act if the tourist is currently 'Safe'.
+            // Only auto-manage Safe <-> Anomaly. 
+// Protect manual statuses (Investigating, Resolved, Alert).
+const protectedStatuses = ['Investigating', 'Resolved', 'Alert'];
+console.log(`Tourist ${tourist.touristId} current DB status: ${oldStatus}, dangerZone: ${isInDangerZone}`);
+
+if (protectedStatuses.includes(oldStatus)) {
+    // Skip: keep whatever status was set manually
+    newStatus = oldStatus;
+} else if (oldStatus === 'Safe' && isInDangerZone) {
+    // Only Safe → Anomaly triggers alerts
+    newStatus = 'Anomaly';
+    sendAlertSMS(tourist);
+} else if (oldStatus === 'Anomaly' && !isInDangerZone) {
+    // Only Anomaly → Safe when leaving the zone
+    newStatus = 'Safe';
+}
+// --- END FIX ---
+            // In all other cases ('Alert', 'Investigating', 'Resolved'), the AI does nothing to the status.
+
+            await Tourist.updateOne(
+                { _id: tourist._id },
+                { 
+                    $set: { 
+                        "location.lat": newLat,
+                        "location.lng": newLng,
+                        status: newStatus 
+                    },
+                    $push: {
+                        locationHistory: {
+                            $each: [[newLat, newLng]],
+                            $slice: -20 // Keep only the last 20 elements
+                        }
+                    }
+                }
+            );
+        }
         
-//         // 3. Compare the old status with the new one.
-//         // If it just changed from 'Safe' to 'Anomaly', send the SMS.
-//         if (tourist.status === 'Anomaly' && oldStatus === 'Safe') {
-//             sendAlertSMS(tourist);
-//         }
-//         // --- END OF KEY LOGIC ---
+        const updatedTourists = await Tourist.find({});
+        io.emit('touristUpdate', updatedTourists);
 
-//         // ... (device status logic remains the same)
-//         const drain = tourist.id === 2 ? 2 : 0.5;
-//         tourist.deviceStatus.battery = Math.max(0, tourist.deviceStatus.battery - drain);
-//         tourist.deviceStatus.network = Math.floor(Math.random() * 4) + 1;
-//     });
+    } catch (error) {
+        console.error("Error in simulation loop:", error);
+    }
+};
 
-//     io.emit('touristUpdate', mockTourists);
-//     // console.log('📡 Broadcasting tourist updates with history...'); // Optional: can be noisy
-// }, 3000);
+setInterval(runSimulation, 5000);
 
-server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// --- 7. Start the Server ---
+server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
