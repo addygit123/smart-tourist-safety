@@ -29,7 +29,7 @@ app.use((req, res, next) => {
 const geoFences = [
   { id: 'zone-1', name: 'Restricted Forest Area', center: { lat: 23.1850, lng: 79.9900 }, radius: 800 },
   // { id: 'zone-2', name: 'Unstable Cliffside', center: { lat: 23.1700, lng: 79.9750 }, radius: 250 },
-  { id: 'zone-3', name: 'Hanuman Tal Lake (Water Body)', center: { lat: 23.200892, lng: 79.985356 }, radius: 500 }
+  { id: 'zone-3', name: 'Robertson Lake (Water Body)', center: { lat: 23.200892, lng: 79.985356 }, radius: 500 }
 ];
 
 // --- 4. API Routes ---
@@ -85,23 +85,14 @@ const runSimulation = async () => {
         const touristsFromDB = await Tourist.find({});
 
         for (const tourist of touristsFromDB) {
-            let newLat = tourist.location.lat;
-            let newLng = tourist.location.lng;
-
-            // Move the tourist
-            if (tourist.passportId === 'TESTID98765') {
-                newLat += 0.0004;
-                newLng += 0.0004;
-            } else {
-                newLat += (Math.random() - 0.5) * 0.001;
-            }
+           
             
             const oldStatus = tourist.status;
             let newStatus = tourist.status;
 
             let isInDangerZone = false;
             for (const fence of geoFences) {
-                if (haversineDistance({ lat: newLat, lng: newLng }, fence.center) < fence.radius) {
+                if (haversineDistance(tourist.location, fence.center) < fence.radius) {
                     isInDangerZone = true;
                     break;
                 }
@@ -130,19 +121,7 @@ if (protectedStatuses.includes(oldStatus)) {
 
             await Tourist.updateOne(
                 { _id: tourist._id },
-                { 
-                    $set: { 
-                        "location.lat": newLat,
-                        "location.lng": newLng,
-                        status: newStatus 
-                    },
-                    $push: {
-                        locationHistory: {
-                            $each: [[newLat, newLng]],
-                            $slice: -20 // Keep only the last 20 elements
-                        }
-                    }
-                }
+                { $set: { status: newStatus } }
             );
         }
         
