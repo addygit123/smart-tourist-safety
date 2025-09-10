@@ -16,7 +16,7 @@ export const getAllTourists = async (req, res) => {
 
 // --- NEW: The complete function to handle registration ---
 export const registerTourist = async (req, res) => {
-    const { name, passportId, nationality, touristPhone, emergencyContactName, emergencyContactPhone } = req.body;
+    const { name, passportId, nationality, touristPhone, emergencyContactName, emergencyContactPhone,pnr=null,travelNumber= null} = req.body;
     
     try {
         console.log("1. Received new tourist registration request.");
@@ -46,6 +46,10 @@ export const registerTourist = async (req, res) => {
                 lat: 23.1815 + (Math.random() - 0.5) * 0.01,
                 lng: 79.9864 + (Math.random() - 0.5) * 0.01
             },// Guaranteed to have a device status
+            ticketInfo: {
+            pnr,
+            travelNumber
+            },
             deviceStatus: {
                 battery: 100, // Start with a full battery
                 network: 4    // Start with a full network signal

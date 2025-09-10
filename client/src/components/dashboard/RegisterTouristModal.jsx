@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 
 const RegisterTouristModal = ({ isOpen, onClose, onRegister }) => {
-  const [formData, setFormData] = useState({ name: '', passportId: '', nationality: '', touristPhone: '', emergencyContactName: '', emergencyContactPhone: '' });
+  const [formData, setFormData] = useState({ name: '', passportId: '', nationality: '', touristPhone: '', emergencyContactName: '', emergencyContactPhone: '' ,
+    // --- THIS IS THE FIX: We add the new fields to the form's state ---
+    pnr: '',
+    travelNumber: ''});
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const handleSubmit = (e) => { e.preventDefault(); onRegister(formData); };
 
@@ -24,6 +27,21 @@ const RegisterTouristModal = ({ isOpen, onClose, onRegister }) => {
             <input name="touristPhone" type="tel" value={formData.touristPhone} onChange={handleChange} placeholder="Tourist's Phone (+91...)" required className="bg-slate-700 p-3 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <input name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} placeholder="Emergency Contact Name" required className="bg-slate-700 p-3 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <input name="emergencyContactPhone" type="tel" value={formData.emergencyContactPhone} onChange={handleChange} placeholder="Emergency Contact Phone" required className="bg-slate-700 p-3 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            {/* --- THIS IS THE FIX: We add the new input fields to the form --- */}
+            <input 
+              name="pnr" 
+              value={formData.pnr} 
+              onChange={handleChange} 
+              placeholder="PNR / Booking ID (Optional)" 
+              className="bg-slate-700 p-3 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            />
+            <input 
+              name="travelNumber" 
+              value={formData.travelNumber} 
+              onChange={handleChange} 
+              placeholder="Flight / Train / Bus No. (Optional)" 
+              className="bg-slate-700 p-3 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            />
           </div>
           <div className="flex justify-end gap-4 mt-8">
             <button type="button" onClick={onClose} className="py-2 px-5 bg-slate-600 rounded hover:bg-slate-700 text-white font-semibold transition-colors">Cancel</button>
