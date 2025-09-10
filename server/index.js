@@ -48,113 +48,32 @@ io.on('connection', async (socket) => {
     socket.emit('touristUpdate', allTourists);
   } catch (error) { console.error("Error sending initial tourist list:", error); }
 
+   // Listener for Alert Triage from the dashboard
   socket.on('updateStatus', async (data) => {
-  console.log(`STATUS UPDATE for tourist ${data.touristId} to ${data.newStatus}`);
-  try {
-      const updatedTourist = await Tourist.findOneAndUpdate(
-        { touristId: data.touristId },
-        { $set: { status: data.newStatus } },
-        { new: true } // return updated doc
-      );
-
-      if (!updatedTourist) {
-          console.warn(`⚠️ Tourist not found: ${data.touristId}`);
-          return;
-      }
-
-      console.log(`✅ DB updated: ${updatedTourist.touristId} is now ${updatedTourist.status}`);
-
-      const allTourists = await Tourist.find({});
-      io.emit('touristUpdate', allTourists);
-  } catch (error) {
-      console.error("Error updating status:", error);
-  }
-});
+    console.log(`STATUS UPDATE for tourist ${data.touristId} to ${data.newStatus}`);
+    try {
+        await Tourist.findOneAndUpdate({ touristId: data.touristId }, { status: a.newStatus });
+        const allTourists = await Tourist.find({});
+        io.emit('touristUpdate', allTourists);
+    } catch (error) {
+        console.error("Error updating status:", error);
+    }
+  });
 
   socket.on('disconnect', () => console.log('❌ User disconnected:', socket.id));
 });
-
+  
 // --- 6. THE FINAL, CORRECT "HEARTBEAT" SIMULATOR ---
 
-const haversineDistance = (coords1, coords2) => {
-    const toRad = x => (x * Math.PI) / 180; const R = 6371e3; const dLat = toRad(coords2.lat - coords1.lat); const dLon = toRad(coords2.lng - coords1.lng); const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(coords1.lat)) * Math.cos(toRad(coords2.lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2); const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); return R * c;
-};
 
-const runSimulation = async () => {
+setInterval(async () => {
     try {
-        const touristsFromDB = await Tourist.find({});
-
-        for (const tourist of touristsFromDB) {
-            let newLat = tourist.location.lat;
-            let newLng = tourist.location.lng;
-
-            // Move the tourist
-            if (tourist.passportId === 'TESTID98765') {
-                newLat += 0.0004;
-                newLng += 0.0004;
-            } else {
-                newLat += (Math.random() - 0.5) * 0.001;
-            }
-            
-            const oldStatus = tourist.status;
-            let newStatus = tourist.status;
-
-            let isInDangerZone = false;
-            for (const fence of geoFences) {
-                if (haversineDistance({ lat: newLat, lng: newLng }, fence.center) < fence.radius) {
-                    isInDangerZone = true;
-                    break;
-                }
-            }
-            
-            // --- THIS IS THE CRITICAL LOGIC FIX ---
-            // Rule 1: The AI is ONLY allowed to act if the tourist is currently 'Safe'.
-            // Only auto-manage Safe <-> Anomaly. 
-// Protect manual statuses (Investigating, Resolved, Alert).
-const protectedStatuses = ['Investigating', 'Resolved', 'Alert'];
-console.log(`Tourist ${tourist.touristId} current DB status: ${oldStatus}, dangerZone: ${isInDangerZone}`);
-
-if (protectedStatuses.includes(oldStatus)) {
-    // Skip: keep whatever status was set manually
-    newStatus = oldStatus;
-} else if (oldStatus === 'Safe' && isInDangerZone) {
-    // Only Safe → Anomaly triggers alerts
-    newStatus = 'Anomaly';
-    sendAlertSMS(tourist);
-} else if (oldStatus === 'Anomaly' && !isInDangerZone) {
-    // Only Anomaly → Safe when leaving the zone
-    newStatus = 'Safe';
-}
-// --- END FIX ---
-            // In all other cases ('Alert', 'Investigating', 'Resolved'), the AI does nothing to the status.
-
-            await Tourist.updateOne(
-                { _id: tourist._id },
-                { 
-                    $set: { 
-                        "location.lat": newLat,
-                        "location.lng": newLng,
-                        status: newStatus 
-                    },
-                    $push: {
-                        locationHistory: {
-                            $each: [[newLat, newLng]],
-                            $slice: -20 // Keep only the last 20 elements
-                        }
-                    }
-                }
-            );
-        }
-        
-        const updatedTourists = await Tourist.find({});
-        io.emit('touristUpdate', updatedTourists);
-
+        const allTourists = await Tourist.find({});
+        io.emit('touristUpdate', allTourists);
     } catch (error) {
-        console.error("Error in simulation loop:", error);
+        console.error("Error in broadcast loop:", error);
     }
-};
-
-setInterval(runSimulation, 5000);
+}, 5000); // Sync every 5 seconds
 
 // --- 7. Start the Server ---
 server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
