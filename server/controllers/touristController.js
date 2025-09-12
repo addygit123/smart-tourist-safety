@@ -125,7 +125,7 @@ export const makeUnsafe = async (req, res) => {
     try{
         const updatedoc = {
             $set: {
-                status: "Unsafe"
+                status: "Anomaly"
             }
         }
         await Tourist.updateOne({touristId: id}, updatedoc)
