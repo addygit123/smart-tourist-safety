@@ -103,7 +103,7 @@ const runSimulation = async () => {
             // Only auto-manage Safe <-> Anomaly. 
 // Protect manual statuses (Investigating, Resolved, Alert).
 const protectedStatuses = ['Investigating', 'Resolved', 'Alert'];
-console.log(`Tourist ${tourist.touristId} current DB status: ${oldStatus}, dangerZone: ${isInDangerZone}`);
+//console.log(`Tourist ${tourist.touristId} current DB status: ${oldStatus}, dangerZone: ${isInDangerZone}`);
 
 if (protectedStatuses.includes(oldStatus)) {
     // Skip: keep whatever status was set manually

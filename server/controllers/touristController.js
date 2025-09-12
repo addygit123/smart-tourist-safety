@@ -102,7 +102,15 @@ export const getATourist = async (req, res) => {
 // --- THIS IS THE FINAL, CORRECT VERSION OF updateLocation ---
 export const updateLocation = async (req, res) => {
     // Note: The mobile dev is sending touristId in the body as 'id'. We match that.
-    const { id, lat, long, blevel, network } = req.body;
+    const { id, lat, long, blevel, network, cache } = req.body;
+    console.log('cache',  cache);
+
+    const history = []
+    if(cache !== null){
+        history = [...cache]
+    }
+
+    history = [...history, [lat, long]]
 
     try {
         // Find the tourist and update everything in one efficient database operation.
@@ -118,7 +126,7 @@ export const updateLocation = async (req, res) => {
                 // --- FIX: Add the new location to the history array ---
                 $push: {
                     locationHistory: {
-                        $each: [[lat, long]], // Add the new point
+                        $each: history, // Add the new point
                         $slice: -20         // Keep only the last 20 elements
                     }
                 }
@@ -141,6 +149,8 @@ export const updateLocation = async (req, res) => {
 // --- This function is now also fixed to broadcast its change ---
 export const makeUnsafe = async (req, res) => {
     const { id } = req.body;
+    console.log(id);
+    
     try {
         await Tourist.updateOne({ touristId: id }, { $set: { status: "Alert" } });
         
