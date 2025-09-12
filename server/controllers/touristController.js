@@ -99,44 +99,58 @@ export const getATourist = async (req, res) => {
     }
 }
 
+// --- THIS IS THE FINAL, CORRECT VERSION OF updateLocation ---
 export const updateLocation = async (req, res) => {
-    const {id, lat, long, blevel, network} = req.body
+    // Note: The mobile dev is sending touristId in the body as 'id'. We match that.
+    const { id, lat, long, blevel, network } = req.body;
 
-    const updateddc = {
-        $set: {
-            location: {
-                lat: lat,
-                lng: long
-            },
-            deviceStatus: {
-                network: network,
-                battery: blevel
-            }
-        }
-    }
     try {
-        await Tourist.updateOne({touristId: id}, updateddc)
-        res.status(200).json({message: 'ok'})
-    }
-    catch(e){
-        res.status(500).json({message: e})
-    }
-}
-
-export const makeUnsafe = async (req, res) => {
-    const {id} = req.body
-
-    try{
-        const updatedoc = {
-            $set: {
-                status: "Anomaly"
+        // Find the tourist and update everything in one efficient database operation.
+        await Tourist.updateOne(
+            { touristId: id },
+            { 
+                $set: { 
+                    "location.lat": lat, 
+                    "location.lng": long,
+                    "deviceStatus.battery": blevel,
+                    "deviceStatus.network": network
+                },
+                // --- FIX: Add the new location to the history array ---
+                $push: {
+                    locationHistory: {
+                        $each: [[lat, long]], // Add the new point
+                        $slice: -20         // Keep only the last 20 elements
+                    }
+                }
             }
-        }
-        await Tourist.updateOne({touristId: id}, updatedoc)
-        res.status(200).json({message: 'ok'})
+        );
+
+        // --- FIX: Broadcast the change to all dashboards ---
+        const allTourists = await Tourist.find({});
+        req.io.emit('touristUpdate', allTourists);
+
+        // Send a success response back to the Expo app.
+        res.status(200).json({ message: 'ok' });
+
+    } catch (error) {
+        console.error("Error updating location:", error.message);
+        res.status(500).json({ message: 'Server error while updating location.' });
     }
-    catch(e){
+};
+
+// --- This function is now also fixed to broadcast its change ---
+export const makeUnsafe = async (req, res) => {
+    const { id } = req.body;
+    try {
+        await Tourist.updateOne({ touristId: id }, { $set: { status: "Alert" } });
+        
+        // --- FIX: Broadcast the change ---
+        const allTourists = await Tourist.find({});
+        req.io.emit('touristUpdate', allTourists);
+
+        res.status(200).json({ message: 'ok' });
+    } catch (e) {
         console.log(e);
-        res.status(500).json({message: e})
+        res.status(500).json({ message: e });
     }
-}
+};
