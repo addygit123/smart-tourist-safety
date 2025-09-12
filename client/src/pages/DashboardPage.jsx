@@ -5,6 +5,7 @@ import LiveMap from '../components/dashboard/LiveMap';
 import StatsCard from '../components/dashboard/StatisticsCard'; 
 import AlertsFeed from '../components/dashboard/AlertFeeds';
 import RegisterTouristModal from '../components/dashboard/RegisterTouristModal';
+import { API_URL } from '../context/Api';
 
 const DashboardPage = () => {
   const [tourists, setTourists] = useState([]);
@@ -13,14 +14,14 @@ const DashboardPage = () => {
   useEffect(() => {
     const fetchInitialTourists = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/tourists');
+            const response = await fetch(`${API_URL}/api/tourists`);
             const data = await response.json();
             setTourists(data);
         } catch (error) { console.error("Failed to fetch initial tourists:", error); }
     };
     fetchInitialTourists();
 
-     const socket = io('http://localhost:5000');
+     const socket = io(`${API_URL}`);
 
 
     
@@ -47,7 +48,7 @@ const DashboardPage = () => {
 
   const handleRegisterTourist = async (formData) => {
     try {
-        await fetch('http://localhost:5000/api/tourists/register', {
+        await fetch(`${API_URL}/api/tourists/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
