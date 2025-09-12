@@ -105,7 +105,7 @@ export const updateLocation = async (req, res) => {
     const { id, lat, long, blevel, network, cache } = req.body;
     console.log('cache',  cache);
 
-    const history = []
+    let history = []
     if(cache !== null){
         history = [...cache]
     }
