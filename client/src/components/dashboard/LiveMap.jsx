@@ -2,6 +2,7 @@ import React, { useState,useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline ,Circle} from 'react-leaflet';
 import L from 'leaflet';
 import PolylineDecorator from './PolylineDecorator'; // <-- Import our new component
+import { API_URL } from '../../context/Api';
 
 // The icon creation logic remains exactly the same.
 const customIconStyles = `
@@ -112,7 +113,7 @@ const LiveMap = ({ tourists }) => {
   useEffect(() => {
     const fetchFences = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/geofences');
+            const response = await fetch(`${API_URL}/api/geofences`);
             const data = await response.json();
             setFences(data);
         } catch (error) {
