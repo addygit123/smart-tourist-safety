@@ -1,6 +1,7 @@
 import Tourist from '../models/Tourist.js';
 // We are temporarily removing axios because we are mocking the mockchain call.
 // import axios from 'axios';
+import axios from "axios";
 import { sendRegistrationSMS } from '../services/notificationService.js';
 // --- UPGRADED: This function now fetches from the REAL database ---
 export const getAllTourists = async (req, res) => {
@@ -21,18 +22,18 @@ export const registerTourist = async (req, res) => {
     try {
         console.log("1. Received new tourist registration request.");
 
-        // --- MOCK of the Mockchain API ---
-        console.log("2. MOCKING the Mockchain API call...");
-        const mockchainResponse = {
-            data: {
-                touristId: `STS-${Date.now()}`,
-                verificationHash: `mock-hash-${Math.random().toString(36).substring(7)}`
-            }
-        };
-        // --- END OF MOCK ---
+        // --- THIS IS THE ENGINE SWAP ---
+        // We are now making a REAL API call to the standalone mockchain server.
+        console.log("2. Calling the real Mockchain API service...");
+        const mockchainResponse = await axios.post('http://localhost:5001/createID', {
+            name,
+            passportId,
+        });
+        // --- END OF ENGINE SWAP ---
+
 
         const { touristId, verificationHash } = mockchainResponse.data;
-        console.log(`3. Received MOCKED ID from Mockchain: ${touristId}`);
+        console.log(`3. Received REAL ID from Mockchain: ${touristId}`);
         
         const newTourist = new Tourist({
             name, passportId, nationality, touristPhone,

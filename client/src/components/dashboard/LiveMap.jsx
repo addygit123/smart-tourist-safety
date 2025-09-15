@@ -45,7 +45,7 @@ const DeviceStatusIcons = ({ status }) => {
                     />
                     <path d="M21 9V15" stroke="#A0AEC0" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                <span style={{ fontSize: '12px', color: '#000000ff' }}>{Math.round(status.battery)}%</span>
+                <span style={{ fontSize: '12px', color: '#000000ff' }}>{Math.round((status.battery)*100)}%</span>
             </div>
             {/* Network Icon */}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '16px' }}>

@@ -19,7 +19,6 @@ const LoginPage = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-http://localhost:5000
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
