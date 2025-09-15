@@ -44,8 +44,9 @@ app.get('/api/geofences', (req, res) => {
 io.on('connection', async (socket) => {
   console.log('✅ A user connected:', socket.id);
   try {
-    const allTourists = await Tourist.find({});
-    socket.emit('touristUpdate', allTourists);
+    // --- CHANGE THIS LINE ---
+    const activeTourists = await Tourist.find({ isActive: true });
+    socket.emit('touristUpdate', activeTourists);
   } catch (error) { console.error("Error sending initial tourist list:", error); }
 
   socket.on('updateStatus', async (data) => {
@@ -64,7 +65,7 @@ io.on('connection', async (socket) => {
 
       console.log(`✅ DB updated: ${updatedTourist.touristId} is now ${updatedTourist.status}`);
 
-      const allTourists = await Tourist.find({});
+      const allTourists = await Tourist.find({isActive: true});
       io.emit('touristUpdate', allTourists);
   } catch (error) {
       console.error("Error updating status:", error);
@@ -82,7 +83,7 @@ const haversineDistance = (coords1, coords2) => {
 
 const runSimulation = async () => {
     try {
-        const touristsFromDB = await Tourist.find({});
+        const touristsFromDB = await Tourist.find({isActive:true});
 
         for (const tourist of touristsFromDB) {
            
@@ -125,7 +126,7 @@ if (protectedStatuses.includes(oldStatus)) {
             );
         }
         
-        const updatedTourists = await Tourist.find({});
+        const updatedTourists = await Tourist.find({isActive: true});
         io.emit('touristUpdate', updatedTourists);
 
     } catch (error) {
@@ -134,6 +135,29 @@ if (protectedStatuses.includes(oldStatus)) {
 };
 
 setInterval(runSimulation, 5000);
+// --- THE "JANITOR" - AUTOMATED TRIP EXPIRATION ---
+const cleanupExpiredTourists = async () => {
+    try {
+        const now = new Date();
+        // console.log(`🧹 Janitor is running its check at ${now.toLocaleTimeString()}`);
+        // Find all active tourists whose trip end date is in the past
+        const result = await Tourist.updateMany(
+            { tripEndDate: {  $exists: true,$lt: now }, isActive: true },
+            { $set: { isActive: false } }
+        );
 
+        if (result.modifiedCount > 0) {
+            console.log(`🧹 Janitor: Deactivated ${result.modifiedCount} expired tourist profiles.`);
+            // After cleaning up, broadcast the new, shorter list of tourists.
+            const activeTourists = await Tourist.find({ isActive: true });
+            io.emit('touristUpdate', activeTourists);
+        }
+    } catch (error) {
+        console.error("Error during tourist cleanup:", error);
+    }
+};
+
+// Run the cleanup task every hour. For the demo, you can set it to 60000 (1 minute).
+setInterval(cleanupExpiredTourists, 3600000); 
 // --- 7. Start the Server ---
 server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

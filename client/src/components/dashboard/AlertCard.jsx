@@ -53,7 +53,7 @@ const AlertCard = ({ alert }) => {
                 )}
                 {/* The "Resolve" button is always there to close the case. */}
                 <button 
-                    onClick={() => handleStatusUpdate('Resolve')} // We resolve by setting them back to 'Safe'
+                    onClick={() => handleStatusUpdate('Resolved')} // We resolve by setting them back to 'Safe'
                     className="flex-1 text-xs bg-green-500/20 text-green-400 py-1 px-2 rounded hover:bg-green-500/40"
                 >
                     Resolve

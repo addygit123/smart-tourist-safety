@@ -21,6 +21,16 @@ const touristSchema = new mongoose.Schema({
         name: String, 
         phone: String 
     },
+     // --- THIS IS THE NEW PART ---
+    tripEndDate: {
+        type: Date,
+        required: true
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    // --- END OF NEW PART ---
     ticketInfo: {
         pnr: { type: String },
         travelMode: { type: String }, // e.g., 'Flight', 'Train'

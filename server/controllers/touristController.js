@@ -7,7 +7,12 @@ import { sendRegistrationSMS } from '../services/notificationService.js';
 export const getAllTourists = async (req, res) => {
   try {
     // This fetches all documents from the 'tourists' collection in MongoDB.
-    const tourists = await Tourist.find({});
+    const tourists = await Tourist.find({
+  $or: [
+    { isActive: true },
+    { isActive: { $exists: false } } // include old tourists
+  ]
+});
     res.status(200).json(tourists);
   } catch (error) {
     // Basic error handling
@@ -17,7 +22,7 @@ export const getAllTourists = async (req, res) => {
 
 // --- NEW: The complete function to handle registration ---
 export const registerTourist = async (req, res) => {
-    const { name, passportId, nationality, touristPhone, emergencyContactName, emergencyContactPhone,pnr=null,travelNumber= null} = req.body;
+    const { name, passportId, nationality, touristPhone, emergencyContactName, emergencyContactPhone,pnr=null,travelNumber= null, tripEndDate } = req.body;
     
     try {
         console.log("1. Received new tourist registration request.");
@@ -51,6 +56,7 @@ export const registerTourist = async (req, res) => {
             pnr,
             travelNumber
             },
+            tripEndDate:new Date(tripEndDate),
             deviceStatus: {
                 battery: 100, // Start with a full battery
                 network: 4    // Start with a full network signal

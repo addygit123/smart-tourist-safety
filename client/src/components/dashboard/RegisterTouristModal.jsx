@@ -4,7 +4,7 @@ const RegisterTouristModal = ({ isOpen, onClose, onRegister }) => {
   const [formData, setFormData] = useState({ name: '', passportId: '', nationality: '', touristPhone: '', emergencyContactName: '', emergencyContactPhone: '' ,
     // --- THIS IS THE FIX: We add the new fields to the form's state ---
     pnr: '',
-    travelNumber: ''});
+    travelNumber: '',tripEndDate: ''});
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const handleSubmit = (e) => { e.preventDefault(); onRegister(formData); };
 
@@ -42,7 +42,21 @@ const RegisterTouristModal = ({ isOpen, onClose, onRegister }) => {
               placeholder="Flight / Train / Bus No. (Optional)" 
               className="bg-slate-700 p-3 rounded text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" 
             />
+            {/* --- ADD THIS NEW INPUT FIELD AT THE END OF THE GRID --- */}
+            <div>
+                <label htmlFor="tripEndDate" className="block text-sm font-medium text-slate-300 mb-1">Trip End Date</label>
+                <input 
+                  id="tripEndDate"
+                  name="tripEndDate" 
+                  type="date" 
+                  value={formData.tripEndDate} 
+                  onChange={handleChange} 
+                  required 
+                  className="bg-slate-700 p-3 rounded text-white w-full"
+                />
+            </div>
           </div>
+
           <div className="flex justify-end gap-4 mt-8">
             <button type="button" onClick={onClose} className="py-2 px-5 bg-slate-600 rounded hover:bg-slate-700 text-white font-semibold transition-colors">Cancel</button>
             <button type="submit" className="py-2 px-5 bg-blue-600 rounded hover:bg-blue-700 text-white font-semibold transition-colors">Register Tourist</button>
