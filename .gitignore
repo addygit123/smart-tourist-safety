@@ -2,7 +2,7 @@
 /node_modules
 /client/node_modules
 /server/node_modules
-
+/mockchain/node_modules
 # Build folder
 /client/dist
 
