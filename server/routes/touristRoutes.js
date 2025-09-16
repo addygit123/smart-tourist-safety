@@ -1,7 +1,7 @@
 // server/routes/touristRoutes.js
 import express from 'express';
 import { getAllTourists } from '../controllers/touristController.js';
-import { registerTourist, getATourist, updateLocation, makeUnsafe } from '../controllers/touristController.js';
+import { registerTourist, getATourist, updateLocation, makeUnsafe, updatePic } from '../controllers/touristController.js';
 
 const router = express.Router();
 
@@ -14,5 +14,6 @@ router.post('/register', registerTourist);
 router.post('/getatourist', getATourist)
 router.post('/updatelocation', updateLocation)
 router.post('/makeunsafe', makeUnsafe)
+router.post('/updatepic', updatePic)
 
 export default router;
