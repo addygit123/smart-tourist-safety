@@ -28,8 +28,9 @@ app.use((req, res, next) => {
 // This was missing from the last version. This is now correct.
 const geoFences = [
   { id: 'zone-1', name: 'Restricted Forest Area', center: { lat: 23.1850, lng: 79.9900 }, radius: 800 },
-  // { id: 'zone-2', name: 'Unstable Cliffside', center: { lat: 23.1700, lng: 79.9750 }, radius: 250 },
-  { id: 'zone-3', name: 'Robertson Lake (Water Body)', center: { lat: 23.200892, lng: 79.985356 }, radius: 500 }
+//   { id: 'zone-2', name: 'Unstable Cliffside', center: { lat: 23.1700, lng: 79.9750 }, radius: 250 },
+  { id: 'zone-3', name: 'Robertson Lake (Water Body)', center: { lat: 23.200892, lng: 79.985356 }, radius: 500 },
+  { id: 'zone-4', name: 'Jabalpur Engineering College', center: { lat: 23.191036111637224, lng: 79.98701518081424 }, radius: 500 }
 ];
 
 // --- 4. API Routes ---
