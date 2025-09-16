@@ -61,6 +61,7 @@ const touristSchema = new mongoose.Schema({
 
     touristId: { type: String, required: true, unique: true },
     verificationHash: { type: String, required: true },
+    pic: {type: String, default:"https://res.cloudinary.com/dqcqijw3c/image/upload/v1758023122/g6jvryfqlifwftwcmp1b.jpg"}
 
 }, { timestamps: true });
 

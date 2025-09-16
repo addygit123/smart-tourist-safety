@@ -171,3 +171,21 @@ export const makeUnsafe = async (req, res) => {
         res.status(500).json({ message: e });
     }
 };
+
+export const updatePic = async (req, res) => {
+    const {id, url} = req.body;
+
+    try{ 
+        await Tourist.updateOne({touristId: id }, {
+            $set: {
+                pic: url 
+            }
+        })
+
+        res.status(200).json({message: 'ok'})
+    }
+    catch(e){
+        console.log(e);
+        res.status(500).json({message:e})
+    }
+}
